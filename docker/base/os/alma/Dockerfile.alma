@@ -1,0 +1,38 @@
+# This is the dockerfile for generating base images for AlmaLinux
+# contains the minimal dependencies needed for V to run
+FROM almalinux:8.5
+
+LABEL maintainer="lczupryn <lczupryn@tibco.com>"
+
+WORKDIR /opt/vlang
+
+ENV VVV  /opt/vlang
+ENV PATH /opt/vlang:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+RUN mkdir -p /opt/vlang && ln -s /opt/vlang/v /usr/bin/v
+
+RUN echo 'fastestmirror=1' >> /etc/dnf/dnf.conf
+RUN dnf --assumeyes group install "Development Tools"
+RUN for iter in {1..10}; do dnf --assumeyes update && dnf --assumeyes --exclude=gcc --exclude=binutils install \
+    git \
+    procps-ng \
+    sysstat \
+    gdb \
+    zip \
+    unzip \
+    libnsl \
+    less \
+    iproute \
+    openssl-libs \
+    sqlite-devel \
+    libX11-devel \
+    freetype \
+    clang-devel.x86_64 \
+    libatomic.x86_64 \
+    make \
+    && dnf clean all && exit_code=0 && break || exit_code=$? && echo "dnf error: retry $iter in 10s" && sleep 10; done; \
+    (exit $exit_code)
+
+ RUN git clone https://github.com/vlang/v /opt/vlang && \ 
+    make CC=clang && v -version && \
+    mkdir /src
